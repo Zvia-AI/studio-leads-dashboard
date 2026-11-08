@@ -34,10 +34,16 @@
 
   <header class="bg-sand border-b border-stone-300 px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
     <h1 class="text-xl sm:text-2xl font-semibold text-wood">סטודיו שקד - דאשבורד לידים</h1>
-    <button type="button" disabled
-      class="bg-sage/40 text-cream font-medium px-4 py-2 rounded-lg cursor-not-allowed opacity-60">
-      הוספת ליד
-    </button>
+    <div class="flex items-center gap-3">
+      <button type="button" id="reset-demo-button"
+        class="text-xs text-taupe/70 underline hover:text-taupe whitespace-nowrap">
+        איפוס נתוני הדגמה
+      </button>
+      <button type="button" id="add-lead-button"
+        class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:bg-sage/90 transition">
+        הוספת ליד
+      </button>
+    </div>
   </header>
 
   <main class="px-4 sm:px-6 py-6 space-y-6">
@@ -152,6 +158,79 @@
     </section>
 
   </main>
+
+  <!-- חלונית הוספת ליד -->
+  <div id="add-lead-modal" class="fixed inset-0 z-50 hidden bg-black/40 p-4 items-center justify-center">
+    <div id="add-lead-dialog" role="dialog" aria-modal="true" aria-labelledby="add-lead-title"
+      class="bg-cream rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+      <h2 id="add-lead-title" class="text-lg font-semibold text-wood mb-4">הוספת ליד חדש</h2>
+
+      <form id="add-lead-form" novalidate>
+        <div class="space-y-4">
+          <div>
+            <label for="lead-name" class="block text-sm text-taupe mb-1">שם *</label>
+            <input type="text" id="lead-name" maxlength="60"
+              class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+            <p id="lead-name-error" class="text-xs text-red-700 mt-1 hidden"></p>
+          </div>
+
+          <div>
+            <label for="lead-phone" class="block text-sm text-taupe mb-1">טלפון *</label>
+            <input type="text" id="lead-phone" maxlength="80"
+              class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+            <p id="lead-phone-error" class="text-xs text-red-700 mt-1 hidden"></p>
+          </div>
+
+          <div>
+            <label for="lead-service" class="block text-sm text-taupe mb-1">סוג שירות *</label>
+            <select id="lead-service" class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+              <option value="">בחירת סוג שירות</option>
+            </select>
+            <p id="lead-service-error" class="text-xs text-red-700 mt-1 hidden"></p>
+          </div>
+
+          <div>
+            <label for="lead-property" class="block text-sm text-taupe mb-1">סוג נכס *</label>
+            <select id="lead-property" class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+              <option value="">בחירת סוג נכס</option>
+            </select>
+            <p id="lead-property-error" class="text-xs text-red-700 mt-1 hidden"></p>
+          </div>
+
+          <div>
+            <label for="lead-email" class="block text-sm text-taupe mb-1">מייל</label>
+            <input type="email" id="lead-email" maxlength="80"
+              class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+          </div>
+
+          <div>
+            <label for="lead-source" class="block text-sm text-taupe mb-1">מקור</label>
+            <select id="lead-source" class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+              <option value="">ללא בחירה</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="lead-value" class="block text-sm text-taupe mb-1">שווי משוער</label>
+            <input type="number" id="lead-value" min="0" step="1"
+              class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
+            <p id="lead-value-error" class="text-xs text-red-700 mt-1 hidden"></p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button type="submit"
+            class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:bg-sage/90 transition">
+            שמירת ליד
+          </button>
+          <button type="button" id="add-lead-cancel"
+            class="border border-sand text-taupe px-4 py-2 rounded-lg hover:bg-sand/40 transition">
+            ביטול
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
