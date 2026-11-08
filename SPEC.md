@@ -17,7 +17,6 @@
 * **Tailwind CSS (via CDN):** עיצוב מודרני ומותאם למובייל ולדסקטופ.
 * **Vanilla JavaScript:** ניהול ה-State, סינון, חיפוש, מיון ואינטראקטיביות.
 * **Chart.js (via CDN):** גרפים.
-* **Lucide Icons (via CDN):** אייקונים.
 * **גופן:** Heebo מ-Google Fonts, עם גופן גיבוי מערכתי.
 
 ### כללי CDN
