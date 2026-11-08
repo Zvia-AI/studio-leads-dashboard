@@ -15,8 +15,7 @@ It is a separate project from any other project on this computer.
 
 ## Working style
 - One build phase at a time, following section 6 of `SPEC.md`.
-- After each phase: show what changed, stop, and wait for Zvia to review it in the browser.
-- This is a practice project. After each phase is built, commit and push it (see PRACTICE.md), then continue with the next phase. Stop and wait only if something fails or is unclear, and at the end of the last phase.
+- This is a practice project. After each phase is built, commit and push it (see PRACTICE.md), then stop, summarize what to check in the browser, and wait for Zvia's approval before starting the next phase. If Zvia reports a problem, fix it in a new commit.
 - Routine commands run without asking. Never touch anything outside this folder, never use --global, --force or reset --hard, and never push anywhere except this repository's origin. Run gitleaks before every push.
 - Before any `git push`, run `git status` and `git log --oneline -3` and show the output.
 - Never run destructive git commands (`reset --hard`, `push --force`, `clean -f`, branch deletion) without asking first.

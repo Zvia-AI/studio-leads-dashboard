@@ -18,13 +18,14 @@ function computeKpis(leads) {
   return { activeCount, pipelineValue, consultationsThisMonth, conversionRate };
 }
 
+const currencyFormatter = new Intl.NumberFormat("he-IL", {
+  style: "currency",
+  currency: "ILS",
+  maximumFractionDigits: 0,
+});
+
 function renderKpis() {
   const kpis = computeKpis(LEADS);
-  const currencyFormatter = new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  });
 
   document.getElementById("kpi-active-value").textContent = kpis.activeCount;
   document.getElementById("kpi-pipeline-value").textContent = currencyFormatter.format(kpis.pipelineValue);
@@ -180,5 +181,190 @@ function renderCharts() {
   }
 }
 
+// ----- טבלת לידים -----
+
+const tableState = {
+  search: "",
+  stageFilter: "all",
+  serviceFilter: "all",
+  sortField: "createdAt",
+  sortDirection: "desc",
+};
+
+function formatDateDMY(isoDate) {
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function getReadableTextColor(hexColor) {
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#3F3A33" : "#FFFFFF";
+}
+
+function getFilteredSortedLeads() {
+  const searchTerm = tableState.search.trim().toLowerCase();
+
+  const filtered = LEADS.filter((lead) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      lead.clientName.toLowerCase().includes(searchTerm) ||
+      lead.phone.toLowerCase().includes(searchTerm);
+    const matchesStage = tableState.stageFilter === "all" || lead.stage === tableState.stageFilter;
+    const matchesService =
+      tableState.serviceFilter === "all" || lead.serviceType === tableState.serviceFilter;
+    return matchesSearch && matchesStage && matchesService;
+  });
+
+  const directionMultiplier = tableState.sortDirection === "asc" ? 1 : -1;
+  filtered.sort((a, b) => {
+    if (tableState.sortField === "estimatedValue") {
+      return (a.estimatedValue - b.estimatedValue) * directionMultiplier;
+    }
+    if (a.createdAt < b.createdAt) return -1 * directionMultiplier;
+    if (a.createdAt > b.createdAt) return 1 * directionMultiplier;
+    return 0;
+  });
+
+  return filtered;
+}
+
+function createCell(text) {
+  const td = document.createElement("td");
+  td.className = "py-2 px-3 border-b border-sand/60";
+  td.textContent = text;
+  return td;
+}
+
+function createLeadRow(lead) {
+  const tr = document.createElement("tr");
+  tr.className = "hover:bg-cream/60";
+
+  tr.appendChild(createCell(lead.clientName));
+  tr.appendChild(createCell(lead.phone));
+  tr.appendChild(createCell(lead.serviceType));
+  tr.appendChild(createCell(lead.propertyType));
+  tr.appendChild(createCell(lead.source));
+
+  const stageTd = document.createElement("td");
+  stageTd.className = "py-2 px-3 border-b border-sand/60";
+  const badge = document.createElement("span");
+  badge.className = "inline-block px-2 py-1 rounded-full text-xs font-medium";
+  badge.style.backgroundColor = STAGE_COLORS[lead.stage];
+  badge.style.color = getReadableTextColor(STAGE_COLORS[lead.stage]);
+  badge.textContent = lead.stage;
+  stageTd.appendChild(badge);
+  tr.appendChild(stageTd);
+
+  tr.appendChild(createCell(currencyFormatter.format(lead.estimatedValue)));
+  tr.appendChild(createCell(formatDateDMY(lead.createdAt)));
+
+  return tr;
+}
+
+const sortableHeaders = {
+  estimatedValue: document.getElementById("th-value"),
+  createdAt: document.getElementById("th-date"),
+};
+
+function updateSortIndicators() {
+  Object.entries(sortableHeaders).forEach(([field, th]) => {
+    const arrow = th.querySelector(".sort-arrow");
+    if (field === tableState.sortField) {
+      th.setAttribute("aria-sort", tableState.sortDirection === "asc" ? "ascending" : "descending");
+      arrow.textContent = tableState.sortDirection === "asc" ? "▲" : "▼";
+    } else {
+      th.setAttribute("aria-sort", "none");
+      arrow.textContent = "";
+    }
+  });
+}
+
+function handleHeaderSort(field) {
+  if (tableState.sortField === field) {
+    tableState.sortDirection = tableState.sortDirection === "asc" ? "desc" : "asc";
+  } else {
+    tableState.sortField = field;
+    tableState.sortDirection = "desc";
+  }
+  renderTable();
+}
+
+function renderTable() {
+  const tableBody = document.getElementById("table-body");
+  const countEl = document.getElementById("table-count");
+  const leads = getFilteredSortedLeads();
+
+  tableBody.textContent = "";
+
+  if (leads.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 8;
+    td.className = "py-6 text-center text-taupe/70";
+    td.textContent = "לא נמצאו לידים מתאימים לחיפוש או לסינון";
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+  } else {
+    leads.forEach((lead) => tableBody.appendChild(createLeadRow(lead)));
+  }
+
+  countEl.textContent = `מוצגים ${leads.length} מתוך ${LEADS.length} לידים`;
+  updateSortIndicators();
+}
+
+function populateSelectOptions(select, values) {
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
+}
+
+function initTableControls() {
+  const searchInput = document.getElementById("table-search");
+  const stageSelect = document.getElementById("table-filter-stage");
+  const serviceSelect = document.getElementById("table-filter-service");
+
+  populateSelectOptions(stageSelect, STAGE_ORDER);
+  populateSelectOptions(serviceSelect, Object.keys(SERVICE_COLORS));
+
+  searchInput.addEventListener("input", () => {
+    tableState.search = searchInput.value;
+    renderTable();
+  });
+  stageSelect.addEventListener("change", () => {
+    tableState.stageFilter = stageSelect.value;
+    renderTable();
+  });
+  serviceSelect.addEventListener("change", () => {
+    tableState.serviceFilter = serviceSelect.value;
+    renderTable();
+  });
+
+  Object.entries(sortableHeaders).forEach(([field, th]) => {
+    th.addEventListener("click", () => handleHeaderSort(field));
+    th.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleHeaderSort(field);
+      }
+    });
+  });
+}
+
 renderKpis();
 renderCharts();
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    if (funnelChartInstance) funnelChartInstance.update();
+    if (servicesChartInstance) servicesChartInstance.update();
+  });
+}
+
+initTableControls();
+renderTable();

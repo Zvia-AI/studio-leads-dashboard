@@ -81,11 +81,74 @@
     <!-- טבלת לידים -->
     <section class="bg-white border border-sand rounded-xl p-4 shadow-sm">
       <h2 class="text-lg font-semibold text-wood mb-3">טבלת לידים</h2>
-      <div class="overflow-x-auto">
-        <div class="min-h-[160px] flex items-center justify-center text-sm text-taupe/70 border border-dashed border-sand rounded-lg">
-          הטבלה, החיפוש והסינון יתווספו בשלב בנייה הבא
+
+      <div class="flex flex-col sm:flex-row gap-3 mb-4">
+        <div class="flex-1">
+          <label for="table-search" class="sr-only">חיפוש לפי שם או טלפון</label>
+          <input
+            type="text"
+            id="table-search"
+            placeholder="חיפוש לפי שם או טלפון"
+            class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
+          >
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="table-filter-stage" class="text-sm text-taupe whitespace-nowrap">שלב</label>
+          <select
+            id="table-filter-stage"
+            class="border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
+          >
+            <option value="all">הכול</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="table-filter-service" class="text-sm text-taupe whitespace-nowrap">סוג שירות</label>
+          <select
+            id="table-filter-service"
+            class="border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
+          >
+            <option value="all">הכול</option>
+          </select>
         </div>
       </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-right border-collapse">
+          <thead>
+            <tr class="border-b border-sand text-taupe">
+              <th scope="col" class="py-2 px-3 font-semibold">שם</th>
+              <th scope="col" class="py-2 px-3 font-semibold">טלפון</th>
+              <th scope="col" class="py-2 px-3 font-semibold">שירות</th>
+              <th scope="col" class="py-2 px-3 font-semibold">סוג נכס</th>
+              <th scope="col" class="py-2 px-3 font-semibold">מקור</th>
+              <th scope="col" class="py-2 px-3 font-semibold">שלב</th>
+              <th
+                scope="col"
+                id="th-value"
+                class="py-2 px-3 font-semibold cursor-pointer select-none"
+                role="button"
+                tabindex="0"
+                aria-sort="none"
+              >
+                שווי משוער <span class="sort-arrow" aria-hidden="true"></span>
+              </th>
+              <th
+                scope="col"
+                id="th-date"
+                class="py-2 px-3 font-semibold cursor-pointer select-none"
+                role="button"
+                tabindex="0"
+                aria-sort="descending"
+              >
+                תאריך פנייה <span class="sort-arrow" aria-hidden="true"></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <p id="table-count" class="text-xs text-taupe/70 mt-3"></p>
     </section>
 
   </main>
