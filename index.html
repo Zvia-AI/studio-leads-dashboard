@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -65,14 +66,14 @@
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="bg-white border border-sand rounded-xl p-4 shadow-sm min-h-[260px] flex flex-col">
         <h2 class="text-lg font-semibold text-wood mb-3">משפך מכירות</h2>
-        <div class="flex-1 flex items-center justify-center text-sm text-taupe/70 border border-dashed border-sand rounded-lg">
-          הגרף יתווסף בשלב בנייה הבא
+        <div id="chart-funnel-container" class="flex-1 h-64 relative">
+          <canvas id="chart-funnel" role="img" aria-label="גרף עמודות אופקי המציג את מספר הלידים בכל שלב במשפך המכירות"></canvas>
         </div>
       </div>
       <div class="bg-white border border-sand rounded-xl p-4 shadow-sm min-h-[260px] flex flex-col">
         <h2 class="text-lg font-semibold text-wood mb-3">התפלגות שירותים</h2>
-        <div class="flex-1 flex items-center justify-center text-sm text-taupe/70 border border-dashed border-sand rounded-lg">
-          הגרף יתווסף בשלב בנייה הבא
+        <div id="chart-services-container" class="flex-1 h-64 relative">
+          <canvas id="chart-services" role="img" aria-label="גרף עוגה המציג את התפלגות הלידים לפי סוג שירות"></canvas>
         </div>
       </div>
     </section>
