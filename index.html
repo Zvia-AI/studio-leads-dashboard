@@ -18,12 +18,14 @@
           fontFamily: {
             sans: ['Heebo', 'ui-sans-serif', 'system-ui', 'sans-serif'],
           },
+          // שמות הצבעים (cream, sand, taupe, wood, sage) הם היסטוריים מהפלטה
+          // הבז'-חומה הראשונה; הערכים עצמם עודכנו לפלטה סגולה מעודנת.
           colors: {
-            cream: '#F7F3EC',
-            sand: '#EDE6D6',
-            taupe: '#8B8178',
-            wood: '#AD8A64',
-            sage: '#7E9680',
+            cream: '#F7F3F8',
+            sand: '#E9DFEC',
+            taupe: '#5E5266',
+            wood: '#6B4A7E',
+            sage: '#7C5A92',
           },
         },
       },
@@ -36,11 +38,11 @@
     <h1 class="text-xl sm:text-2xl font-semibold text-wood">סטודיו שקד - דאשבורד לידים</h1>
     <div class="flex items-center gap-3">
       <button type="button" id="reset-demo-button"
-        class="text-xs text-taupe/70 underline hover:text-taupe whitespace-nowrap">
+        class="text-xs text-taupe underline hover:text-wood whitespace-nowrap">
         איפוס נתוני הדגמה
       </button>
       <button type="button" id="add-lead-button"
-        class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:bg-sage/90 transition">
+        class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:brightness-95 transition">
         הוספת ליד
       </button>
     </div>
@@ -55,8 +57,9 @@
         <p id="kpi-active-value" class="text-2xl font-semibold text-wood mt-2">—</p>
       </div>
       <div class="bg-white border border-sand rounded-xl p-4 shadow-sm">
-        <p class="text-sm text-taupe">שווי צנרת</p>
+        <p class="text-sm text-taupe">שווי פרויקטים בתהליך</p>
         <p id="kpi-pipeline-value" class="text-2xl font-semibold text-wood mt-2">—</p>
+        <p class="text-xs text-taupe mt-1">סכום השווי המשוער של הלידים הפעילים</p>
       </div>
       <div class="bg-white border border-sand rounded-xl p-4 shadow-sm">
         <p class="text-sm text-taupe">פגישות ייעוץ החודש</p>
@@ -148,13 +151,14 @@
               >
                 תאריך פנייה <span class="sort-arrow" aria-hidden="true"></span>
               </th>
+              <th scope="col" class="py-2 px-3 font-semibold">פעולות</th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
         </table>
       </div>
 
-      <p id="table-count" class="text-xs text-taupe/70 mt-3"></p>
+      <p id="table-count" class="text-xs text-taupe mt-3"></p>
     </section>
 
   </main>
@@ -216,11 +220,16 @@
               class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe">
             <p id="lead-value-error" class="text-xs text-red-700 mt-1 hidden"></p>
           </div>
+
+          <div id="lead-stage-field" class="hidden">
+            <label for="lead-stage" class="block text-sm text-taupe mb-1">שלב</label>
+            <select id="lead-stage" class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe"></select>
+          </div>
         </div>
 
         <div class="flex gap-3 mt-6">
-          <button type="submit"
-            class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:bg-sage/90 transition">
+          <button type="submit" id="lead-form-submit-button"
+            class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:brightness-95 transition">
             שמירת ליד
           </button>
           <button type="button" id="add-lead-cancel"

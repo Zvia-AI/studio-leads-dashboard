@@ -3,7 +3,7 @@ function computeKpis(leads) {
     (lead) => lead.stage !== "נסגר בהצלחה" && lead.stage !== "לא רלוונטי"
   );
   const activeCount = activeLeads.length;
-  const pipelineValue = activeLeads.reduce((sum, lead) => sum + lead.estimatedValue, 0);
+  const pipelineValue = activeLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
 
   const now = new Date();
   const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -42,21 +42,23 @@ const STAGE_ORDER = [
   "לא רלוונטי",
 ];
 
+// צבעי השלבים בפלטה הסגולה: "נסגר בהצלחה" נשאר ירוק מעודן, "לא רלוונטי" נשאר אפור,
+// ו"הצעת מחיר בהמתנה" מקבל את נגיעת הזהב הרכה של העיצוב.
 const STAGE_COLORS = {
-  "פנייה חדשה": "#A6A08F",
-  "שיחת היכרות טלפונית": "#8FBAC9",
-  "פגישת ייעוץ בשטח (בתשלום)": "#5E85A8",
+  "פנייה חדשה": "#C9BFD1",
+  "שיחת היכרות טלפונית": "#A98FB8",
+  "פגישת ייעוץ בשטח (בתשלום)": "#7C5A92",
   "הצעת מחיר בהמתנה": "#C9A355",
   "נסגר בהצלחה": "#7E9680",
-  "לא רלוונטי": "#C4BFB8",
+  "לא רלוונטי": "#B3A8B8",
 };
 
 const SERVICE_COLORS = {
-  "תכנון ועיצוב מלא": "#AD8A64",
-  "הלבשת הבית (Home Styling)": "#8FBAC9",
-  "חבילת שינויי דיירים": "#C9A355",
-  "יום קניות מרוכז": "#8B8178",
-  "פגישת ייעוץ ממוקדת": "#5E85A8",
+  "תכנון ועיצוב מלא": "#5B3E6E",
+  "הלבשת הבית (Home Styling)": "#C9B8D6",
+  "חבילת שינויי דיירים": "#B08FC2",
+  "יום קניות מרוכז": "#6E5A7E",
+  "פגישת ייעוץ ממוקדת": "#C9A355",
 };
 
 const PROPERTY_TYPES = [
@@ -84,8 +86,8 @@ function renderCharts() {
 
   if (typeof Chart === "undefined") {
     const message = "לא ניתן לטעון את ספריית הגרפים כרגע";
-    funnelContainer.innerHTML = `<p class="text-sm text-taupe/70 text-center mt-8">${message}</p>`;
-    servicesContainer.innerHTML = `<p class="text-sm text-taupe/70 text-center mt-8">${message}</p>`;
+    funnelContainer.innerHTML = `<p class="text-sm text-taupe text-center mt-8">${message}</p>`;
+    servicesContainer.innerHTML = `<p class="text-sm text-taupe text-center mt-8">${message}</p>`;
     return;
   }
 
@@ -191,6 +193,29 @@ function renderCharts() {
   }
 }
 
+// ----- טלפון -----
+
+function normalizePhone(raw) {
+  let digits = raw.replace(/[\s\-()]/g, "");
+
+  if (digits.startsWith("+972")) {
+    digits = `0${digits.slice(4)}`;
+  } else if (digits.startsWith("972")) {
+    digits = `0${digits.slice(3)}`;
+  }
+
+  if (!/^\d+$/.test(digits)) return null;
+  if (!digits.startsWith("0")) return null;
+
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 9) {
+    return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+  }
+  return null;
+}
+
 // ----- טבלת לידים -----
 
 const tableState = {
@@ -211,17 +236,19 @@ function getReadableTextColor(hexColor) {
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? "#3F3A33" : "#FFFFFF";
+  return luminance > 0.5 ? "#2E1F38" : "#FFFFFF";
 }
 
 function getFilteredSortedLeads() {
   const searchTerm = tableState.search.trim().toLowerCase();
+  const strippedSearch = searchTerm.replace(/[\s-]/g, "");
 
   const filtered = LEADS.filter((lead) => {
+    const strippedPhone = lead.phone.replace(/[\s-]/g, "").toLowerCase();
     const matchesSearch =
       searchTerm === "" ||
       lead.clientName.toLowerCase().includes(searchTerm) ||
-      lead.phone.toLowerCase().includes(searchTerm);
+      strippedPhone.includes(strippedSearch);
     const matchesStage = tableState.stageFilter === "all" || lead.stage === tableState.stageFilter;
     const matchesService =
       tableState.serviceFilter === "all" || lead.serviceType === tableState.serviceFilter;
@@ -231,7 +258,7 @@ function getFilteredSortedLeads() {
   const directionMultiplier = tableState.sortDirection === "asc" ? 1 : -1;
   filtered.sort((a, b) => {
     if (tableState.sortField === "estimatedValue") {
-      return (a.estimatedValue - b.estimatedValue) * directionMultiplier;
+      return ((a.estimatedValue ?? 0) - (b.estimatedValue ?? 0)) * directionMultiplier;
     }
     if (a.createdAt < b.createdAt) return -1 * directionMultiplier;
     if (a.createdAt > b.createdAt) return 1 * directionMultiplier;
@@ -245,6 +272,37 @@ function createCell(text) {
   const td = document.createElement("td");
   td.className = "py-2 px-3 border-b border-sand/60";
   td.textContent = text;
+  return td;
+}
+
+function createActionsCell(lead) {
+  const td = document.createElement("td");
+  td.className = "py-2 px-3 border-b border-sand/60";
+
+  if (!addedLeadIds.has(lead.id)) {
+    return td;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "flex items-center justify-end gap-3";
+
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.textContent = "עריכה";
+  editButton.className = "text-xs text-sage hover:underline";
+  editButton.setAttribute("aria-label", `עריכת הליד של ${lead.clientName}`);
+  editButton.addEventListener("click", () => openEditLeadModal(lead.id));
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.textContent = "מחיקה";
+  deleteButton.className = "text-xs text-red-700 hover:underline";
+  deleteButton.setAttribute("aria-label", `מחיקת הליד של ${lead.clientName}`);
+  deleteButton.addEventListener("click", () => handleDeleteLead(lead.id));
+
+  wrapper.appendChild(editButton);
+  wrapper.appendChild(deleteButton);
+  td.appendChild(wrapper);
   return td;
 }
 
@@ -268,8 +326,11 @@ function createLeadRow(lead) {
   stageTd.appendChild(badge);
   tr.appendChild(stageTd);
 
-  tr.appendChild(createCell(currencyFormatter.format(lead.estimatedValue)));
+  tr.appendChild(
+    createCell(lead.estimatedValue === null ? "-" : currencyFormatter.format(lead.estimatedValue))
+  );
   tr.appendChild(createCell(formatDateDMY(lead.createdAt)));
+  tr.appendChild(createActionsCell(lead));
 
   return tr;
 }
@@ -312,8 +373,8 @@ function renderTable() {
   if (leads.length === 0) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 8;
-    td.className = "py-6 text-center text-taupe/70";
+    td.colSpan = 9;
+    td.className = "py-6 text-center text-taupe";
     td.textContent = "לא נמצאו לידים מתאימים לחיפוש או לסינון";
     tr.appendChild(td);
     tableBody.appendChild(tr);
@@ -366,7 +427,7 @@ function initTableControls() {
   });
 }
 
-// ----- הוספת ליד ושמירת נתונים -----
+// ----- הוספה, עריכה, מחיקה ושמירת נתונים -----
 
 const STORAGE_KEY = "studio-leads-dashboard:added-leads";
 let addedLeadCounter = 0;
@@ -410,12 +471,20 @@ function isValidStoredLead(item) {
   if (!Object.prototype.hasOwnProperty.call(SERVICE_COLORS, item.serviceType)) return false;
   if (!PROPERTY_TYPES.includes(item.propertyType)) return false;
   if (item.source !== "" && !SOURCES.includes(item.source)) return false;
-  if (item.stage !== "פנייה חדשה") return false;
-  if (typeof item.estimatedValue !== "number" || Number.isNaN(item.estimatedValue) || item.estimatedValue < 0) {
+  if (!STAGE_ORDER.includes(item.stage)) return false;
+  if (
+    item.estimatedValue !== null &&
+    (typeof item.estimatedValue !== "number" || Number.isNaN(item.estimatedValue) || item.estimatedValue < 0)
+  ) {
     return false;
   }
   if (typeof item.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.createdAt)) return false;
-  if (item.consultationDate !== null) return false;
+  if (
+    item.consultationDate !== null &&
+    (typeof item.consultationDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.consultationDate))
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -423,10 +492,9 @@ function loadValidAddedLeads() {
   return readStoredAddedLeadsRaw().filter(isValidStoredLead);
 }
 
-function appendAddedLeadToStorage(lead) {
-  const existing = readStoredAddedLeadsRaw();
-  existing.push(lead);
-  writeStoredAddedLeads(existing);
+function persistAddedLeads() {
+  const addedLeads = LEADS.filter((lead) => addedLeadIds.has(lead.id));
+  writeStoredAddedLeads(addedLeads);
 }
 
 function buildLocalDateString() {
@@ -454,6 +522,10 @@ function buildNewLead(values) {
   };
 }
 
+function findLeadById(id) {
+  return LEADS.find((lead) => lead.id === id);
+}
+
 const FIELD_ERROR_IDS = {
   name: "lead-name-error",
   phone: "lead-phone-error",
@@ -478,10 +550,16 @@ function showFormErrors(errors) {
   });
 }
 
-function validateAddLeadForm(values) {
+function validateLeadForm(values) {
   const errors = {};
   if (values.name === "") errors.name = "שדה חובה - יש למלא שם";
-  if (values.phone === "") errors.phone = "שדה חובה - יש למלא טלפון";
+
+  if (values.phone === "") {
+    errors.phone = "שדה חובה - יש למלא טלפון";
+  } else if (normalizePhone(values.phone) === null) {
+    errors.phone = "מספר טלפון לא תקין - יש להזין מספר ישראלי, לדוגמה 050-123-4567";
+  }
+
   if (values.serviceType === "") errors.serviceType = "שדה חובה - יש לבחור סוג שירות";
   if (values.propertyType === "") errors.propertyType = "שדה חובה - יש לבחור סוג נכס";
   if (values.estimatedValueRaw !== "" && Number(values.estimatedValueRaw) < 0) {
@@ -495,8 +573,13 @@ const addLeadButton = document.getElementById("add-lead-button");
 const addLeadForm = document.getElementById("add-lead-form");
 const addLeadCancelButton = document.getElementById("add-lead-cancel");
 const resetDemoButton = document.getElementById("reset-demo-button");
+const leadFormTitle = document.getElementById("add-lead-title");
+const leadFormSubmitButton = document.getElementById("lead-form-submit-button");
+const leadStageField = document.getElementById("lead-stage-field");
+const leadStageSelect = document.getElementById("lead-stage");
 
 let lastFocusedBeforeModal = null;
+let editingLeadId = null;
 
 function handleModalKeydown(event) {
   if (event.key === "Escape") {
@@ -517,11 +600,52 @@ function closeAddLeadModal() {
   addLeadModal.classList.remove("flex");
   addLeadForm.reset();
   clearFormErrors();
+  editingLeadId = null;
+  leadFormTitle.textContent = "הוספת ליד חדש";
+  leadFormSubmitButton.textContent = "שמירת ליד";
+  leadStageField.classList.add("hidden");
   document.removeEventListener("keydown", handleModalKeydown);
   if (lastFocusedBeforeModal) lastFocusedBeforeModal.focus();
 }
 
-function handleAddLeadSubmit(event) {
+function openModalForAdd() {
+  editingLeadId = null;
+  leadFormTitle.textContent = "הוספת ליד חדש";
+  leadFormSubmitButton.textContent = "שמירת ליד";
+  leadStageField.classList.add("hidden");
+  openAddLeadModal();
+}
+
+function openEditLeadModal(leadId) {
+  const lead = findLeadById(leadId);
+  if (!lead) return;
+
+  editingLeadId = leadId;
+  leadFormTitle.textContent = "עריכת ליד";
+  leadFormSubmitButton.textContent = "שמירת שינויים";
+  leadStageField.classList.remove("hidden");
+
+  document.getElementById("lead-name").value = lead.clientName;
+  document.getElementById("lead-phone").value = lead.phone;
+  document.getElementById("lead-service").value = lead.serviceType;
+  document.getElementById("lead-property").value = lead.propertyType;
+  document.getElementById("lead-email").value = lead.email;
+  document.getElementById("lead-source").value = lead.source;
+  document.getElementById("lead-value").value = lead.estimatedValue === null ? "" : lead.estimatedValue;
+  leadStageSelect.value = lead.stage;
+
+  openAddLeadModal();
+}
+
+function applyConsultationDateRule(lead, newStage) {
+  if (newStage === "פגישת ייעוץ בשטח (בתשלום)" && lead.consultationDate === null) {
+    lead.consultationDate = buildLocalDateString();
+  } else if (newStage === "פנייה חדשה" || newStage === "שיחת היכרות טלפונית") {
+    lead.consultationDate = null;
+  }
+}
+
+function handleLeadFormSubmit(event) {
   event.preventDefault();
   clearFormErrors();
 
@@ -535,28 +659,63 @@ function handleAddLeadSubmit(event) {
     estimatedValueRaw: document.getElementById("lead-value").value,
   };
 
-  const errors = validateAddLeadForm(values);
+  const errors = validateLeadForm(values);
   if (Object.keys(errors).length > 0) {
     showFormErrors(errors);
     return;
   }
 
-  const estimatedValue = values.estimatedValueRaw === "" ? 0 : Number(values.estimatedValueRaw);
-  const newLead = buildNewLead({
-    name: values.name,
-    phone: values.phone,
-    serviceType: values.serviceType,
-    propertyType: values.propertyType,
-    email: values.email,
-    source: values.source,
-    estimatedValue,
-  });
+  const normalizedPhone = normalizePhone(values.phone);
+  const estimatedValue = values.estimatedValueRaw === "" ? null : Number(values.estimatedValueRaw);
 
-  LEADS.push(newLead);
-  addedLeadIds.add(newLead.id);
-  appendAddedLeadToStorage(newLead);
+  if (editingLeadId) {
+    const lead = findLeadById(editingLeadId);
+    if (lead) {
+      const newStage = leadStageSelect.value;
+      lead.clientName = values.name;
+      lead.phone = normalizedPhone;
+      lead.serviceType = values.serviceType;
+      lead.propertyType = values.propertyType;
+      lead.email = values.email;
+      lead.source = values.source;
+      lead.estimatedValue = estimatedValue;
+      applyConsultationDateRule(lead, newStage);
+      lead.stage = newStage;
+      persistAddedLeads();
+    }
+  } else {
+    const newLead = buildNewLead({
+      name: values.name,
+      phone: normalizedPhone,
+      serviceType: values.serviceType,
+      propertyType: values.propertyType,
+      email: values.email,
+      source: values.source,
+      estimatedValue,
+    });
+    LEADS.push(newLead);
+    addedLeadIds.add(newLead.id);
+    persistAddedLeads();
+  }
 
   closeAddLeadModal();
+  renderKpis();
+  renderCharts();
+  renderTable();
+}
+
+function handleDeleteLead(leadId) {
+  const lead = findLeadById(leadId);
+  if (!lead) return;
+
+  const confirmed = confirm(`למחוק את הליד של ${lead.clientName}? הפעולה אינה הפיכה.`);
+  if (!confirmed) return;
+
+  const index = LEADS.findIndex((item) => item.id === leadId);
+  if (index !== -1) LEADS.splice(index, 1);
+  addedLeadIds.delete(leadId);
+  persistAddedLeads();
+
   renderKpis();
   renderCharts();
   renderTable();
@@ -583,13 +742,14 @@ function initAddLeadModal() {
   populateSelectOptions(document.getElementById("lead-service"), Object.keys(SERVICE_COLORS));
   populateSelectOptions(document.getElementById("lead-property"), PROPERTY_TYPES);
   populateSelectOptions(document.getElementById("lead-source"), SOURCES);
+  populateSelectOptions(leadStageSelect, STAGE_ORDER);
 
-  addLeadButton.addEventListener("click", openAddLeadModal);
+  addLeadButton.addEventListener("click", openModalForAdd);
   addLeadCancelButton.addEventListener("click", closeAddLeadModal);
   addLeadModal.addEventListener("click", (event) => {
     if (event.target === addLeadModal) closeAddLeadModal();
   });
-  addLeadForm.addEventListener("submit", handleAddLeadSubmit);
+  addLeadForm.addEventListener("submit", handleLeadFormSubmit);
   resetDemoButton.addEventListener("click", handleResetDemo);
 }
 
