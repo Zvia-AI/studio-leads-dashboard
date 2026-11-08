@@ -3,7 +3,15 @@
 function daysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function daysAgoThisMonth(n) {
+  const today = new Date();
+  return daysAgo(Math.min(n, today.getDate() - 1));
 }
 
 const LEADS = [
@@ -17,10 +25,10 @@ const LEADS = [
   { id: "lead-07", clientName: "שירה מזרחי", phone: "050-000-0007", email: "lead07@example.com", serviceType: "הלבשת הבית (Home Styling)", propertyType: "ריענון חלל בודד", source: "אינסטגרם", stage: "שיחת היכרות טלפונית", estimatedValue: 18500, createdAt: daysAgo(4), consultationDate: null },
   { id: "lead-08", clientName: "אורי בן-דוד", phone: "050-000-0008", email: "lead08@example.com", serviceType: "חבילת שינויי דיירים", propertyType: "דירת קבלן", source: "המלצה מלקוח עבר", stage: "שיחת היכרות טלפונית", estimatedValue: 31000, createdAt: daysAgo(8), consultationDate: null },
 
-  { id: "lead-09", clientName: "רוני אשכנזי", phone: "050-000-0009", email: "lead09@example.com", serviceType: "יום קניות מרוכז", propertyType: "שיפוץ כולל", source: "אתר הסטודיו", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 4500, createdAt: daysAgo(20), consultationDate: daysAgo(10) },
-  { id: "lead-10", clientName: "הדר צדוק", phone: "050-000-0010", email: "lead10@example.com", serviceType: "פגישת ייעוץ ממוקדת", propertyType: "בית פרטי / וילה", source: "פייסבוק", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 900, createdAt: daysAgo(15), consultationDate: daysAgo(3) },
-  { id: "lead-11", clientName: "עומר וקנין", phone: "050-000-0011", email: "lead11@example.com", serviceType: "תכנון ועיצוב מלא", propertyType: "חלל מסחרי / קליניקה", source: "אינסטגרם", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 54000, createdAt: daysAgo(25), consultationDate: daysAgo(18) },
-  { id: "lead-12", clientName: "ליאת דהן", phone: "050-000-0012", email: "lead12@example.com", serviceType: "הלבשת הבית (Home Styling)", propertyType: "ריענון חלל בודד", source: "המלצה מלקוח עבר", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 9800, createdAt: daysAgo(12), consultationDate: daysAgo(2) },
+  { id: "lead-09", clientName: "רוני אשכנזי", phone: "050-000-0009", email: "lead09@example.com", serviceType: "יום קניות מרוכז", propertyType: "שיפוץ כולל", source: "אתר הסטודיו", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 4500, createdAt: daysAgo(20), consultationDate: daysAgoThisMonth(10) },
+  { id: "lead-10", clientName: "הדר צדוק", phone: "050-000-0010", email: "lead10@example.com", serviceType: "פגישת ייעוץ ממוקדת", propertyType: "בית פרטי / וילה", source: "פייסבוק", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 900, createdAt: daysAgo(15), consultationDate: daysAgoThisMonth(3) },
+  { id: "lead-11", clientName: "עומר וקנין", phone: "050-000-0011", email: "lead11@example.com", serviceType: "תכנון ועיצוב מלא", propertyType: "חלל מסחרי / קליניקה", source: "אינסטגרם", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 54000, createdAt: daysAgo(25), consultationDate: daysAgoThisMonth(18) },
+  { id: "lead-12", clientName: "ליאת דהן", phone: "050-000-0012", email: "lead12@example.com", serviceType: "הלבשת הבית (Home Styling)", propertyType: "ריענון חלל בודד", source: "המלצה מלקוח עבר", stage: "פגישת ייעוץ בשטח (בתשלום)", estimatedValue: 9800, createdAt: daysAgo(12), consultationDate: daysAgoThisMonth(2) },
 
   { id: "lead-13", clientName: "גיל שפירא", phone: "050-000-0013", email: "lead13@example.com", serviceType: "חבילת שינויי דיירים", propertyType: "דירת קבלן", source: "אתר הסטודיו", stage: "הצעת מחיר בהמתנה", estimatedValue: 16500, createdAt: daysAgo(35), consultationDate: daysAgo(20) },
   { id: "lead-14", clientName: "נטע רוזן", phone: "050-000-0014", email: "lead14@example.com", serviceType: "יום קניות מרוכז", propertyType: "שיפוץ כולל", source: "פייסבוק", stage: "הצעת מחיר בהמתנה", estimatedValue: 2600, createdAt: daysAgo(40), consultationDate: daysAgo(25) },
