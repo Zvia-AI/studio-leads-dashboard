@@ -94,7 +94,7 @@
     <div id="dashboard-content" class="hidden space-y-6">
 
     <!-- כרטיסי מדדים -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <div class="bg-white border border-sand rounded-xl p-4 shadow-sm">
         <p class="text-sm text-taupe">לידים פעילים</p>
         <p id="kpi-active-value" class="text-2xl font-semibold text-wood mt-2">—</p>
@@ -103,6 +103,12 @@
         <p class="text-sm text-taupe">שווי פרויקטים בתהליך</p>
         <p id="kpi-pipeline-value" class="text-2xl font-semibold text-wood mt-2">—</p>
         <p class="text-xs text-taupe mt-1">סכום השווי המשוער של הלידים הפעילים</p>
+      </div>
+      <div class="bg-white border border-sand rounded-xl p-4 shadow-sm">
+        <p class="text-sm text-taupe">שווי בתהליך - מטבע חוץ</p>
+        <p id="kpi-pipeline-foreign-value" class="text-2xl font-semibold text-wood mt-2">—</p>
+        <p id="kpi-pipeline-foreign-meta" class="text-xs text-taupe mt-1"></p>
+        <p id="kpi-pipeline-foreign-error" class="text-xs text-red-700 mt-1 hidden"></p>
       </div>
       <div class="bg-white border border-sand rounded-xl p-4 shadow-sm">
         <p class="text-sm text-taupe">פגישות ייעוץ החודש</p>
@@ -295,6 +301,7 @@
   </div>
 
   <script src="airtable.js"></script>
+  <script src="exchange-rates.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

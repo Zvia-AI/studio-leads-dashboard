@@ -26,6 +26,42 @@ const currencyFormatter = new Intl.NumberFormat("he-IL", {
   maximumFractionDigits: 0,
 });
 
+const usdFormatter = new Intl.NumberFormat("he-IL", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+const eurFormatter = new Intl.NumberFormat("he-IL", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+let exchangeRates = null;
+let exchangeRateErrorMessage = null;
+
+function renderPipelineForeignCurrency(pipelineValue) {
+  const valueEl = document.getElementById("kpi-pipeline-foreign-value");
+  const metaEl = document.getElementById("kpi-pipeline-foreign-meta");
+  const errorEl = document.getElementById("kpi-pipeline-foreign-error");
+
+  if (!exchangeRates) {
+    valueEl.textContent = "—";
+    metaEl.textContent = "";
+    errorEl.textContent = exchangeRateErrorMessage || "לא ניתן לטעון שערי חליפין כרגע";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  errorEl.classList.add("hidden");
+  errorEl.textContent = "";
+  const usdValue = pipelineValue * exchangeRates.usdRate;
+  const eurValue = pipelineValue * exchangeRates.eurRate;
+  valueEl.textContent = `${usdFormatter.format(usdValue)} / ${eurFormatter.format(eurValue)}`;
+  metaEl.textContent = `שער מתאריך ${formatDateDMY(exchangeRates.date)} - מקור: ${exchangeRates.source}`;
+}
+
 function renderKpis() {
   const kpis = computeKpis(LEADS);
 
@@ -33,6 +69,7 @@ function renderKpis() {
   document.getElementById("kpi-pipeline-value").textContent = currencyFormatter.format(kpis.pipelineValue);
   document.getElementById("kpi-consultations-value").textContent = kpis.consultationsThisMonth;
   document.getElementById("kpi-conversion-value").textContent = `${kpis.conversionRate}%`;
+  renderPipelineForeignCurrency(kpis.pipelineValue);
 }
 
 const STAGE_ORDER = [
@@ -475,6 +512,15 @@ async function loadLeadsFromAirtable() {
   try {
     LEADS = await fetchLeadsFromAirtable();
     setConnectedUi(true);
+
+    try {
+      exchangeRates = await fetchExchangeRates();
+      exchangeRateErrorMessage = null;
+    } catch (rateError) {
+      exchangeRates = null;
+      exchangeRateErrorMessage = rateError.message;
+    }
+
     renderKpis();
     renderCharts();
     renderTable();
@@ -510,6 +556,8 @@ async function handleConnectSubmit(event) {
 function handleDisconnect() {
   clearCredentials();
   LEADS = [];
+  exchangeRates = null;
+  exchangeRateErrorMessage = null;
   setConnectedUi(false);
   clearAirtableError();
   airtableTokenInput.value = "";
