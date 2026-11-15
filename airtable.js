@@ -1,8 +1,8 @@
 // שכבת תקשורת עם Airtable: שמירת פרטי החיבור ב-localStorage (במכשיר הזה בלבד),
-// ובניית קריאות ה-REST API לטבלת "Leads". אין טוקן קבוע בקוד.
+// ובניית קריאות ה-REST API לטבלה שהוגדרה בחיבור. אין טוקן קבוע בקוד.
 
 const AIRTABLE_CREDENTIALS_KEY = "studio-leads-dashboard:airtable-credentials";
-const AIRTABLE_TABLE_NAME = "Leads";
+const AIRTABLE_DEFAULT_TABLE_NAME = "Leads";
 
 class AirtableError extends Error {
   constructor(message) {
@@ -16,17 +16,24 @@ function getStoredCredentials() {
     const raw = localStorage.getItem(AIRTABLE_CREDENTIALS_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed.token !== "string" || typeof parsed.baseId !== "string") return null;
-    if (!parsed.token || !parsed.baseId) return null;
+    if (
+      !parsed ||
+      typeof parsed.token !== "string" ||
+      typeof parsed.baseId !== "string" ||
+      typeof parsed.table !== "string"
+    ) {
+      return null;
+    }
+    if (!parsed.token || !parsed.baseId || !parsed.table) return null;
     return parsed;
   } catch (error) {
     return null;
   }
 }
 
-function saveCredentials(token, baseId) {
+function saveCredentials(token, baseId, table) {
   try {
-    localStorage.setItem(AIRTABLE_CREDENTIALS_KEY, JSON.stringify({ token, baseId }));
+    localStorage.setItem(AIRTABLE_CREDENTIALS_KEY, JSON.stringify({ token, baseId, table }));
   } catch (error) {
     // אין גישה לאחסון - החיבור יישמר רק עד רענון הדף
   }
@@ -40,8 +47,8 @@ function clearCredentials() {
   }
 }
 
-function buildApiUrl(baseId, pathSuffix) {
-  return `https://api.airtable.com/v0/${encodeURIComponent(baseId)}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}${pathSuffix}`;
+function buildApiUrl(baseId, table, pathSuffix) {
+  return `https://api.airtable.com/v0/${encodeURIComponent(baseId)}/${encodeURIComponent(table)}${pathSuffix}`;
 }
 
 async function airtableRequest(method, pathSuffix, body) {
@@ -50,7 +57,7 @@ async function airtableRequest(method, pathSuffix, body) {
 
   let response;
   try {
-    response = await fetch(buildApiUrl(credentials.baseId, pathSuffix), {
+    response = await fetch(buildApiUrl(credentials.baseId, credentials.table, pathSuffix), {
       method,
       headers: {
         Authorization: `Bearer ${credentials.token}`,
@@ -69,7 +76,7 @@ async function airtableRequest(method, pathSuffix, body) {
   }
   if (response.status === 404) {
     throw new AirtableError(
-      `לא נמצא מאגר (Base) או טבלה בשם "${AIRTABLE_TABLE_NAME}" - יש לבדוק את ה-Base ID ואת שם הטבלה ב-Airtable`
+      `לא נמצא מאגר (Base) או טבלה בשם "${credentials.table}" - יש לבדוק את ה-Base ID ואת שם/מזהה הטבלה ב-Airtable`
     );
   }
   if (response.status === 429) {

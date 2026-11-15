@@ -432,6 +432,7 @@ function initTableControls() {
 const airtableConnectForm = document.getElementById("airtable-connect-form");
 const airtableTokenInput = document.getElementById("airtable-token");
 const airtableBaseIdInput = document.getElementById("airtable-base-id");
+const airtableTableInput = document.getElementById("airtable-table");
 const airtableConnectButton = document.getElementById("airtable-connect-button");
 const airtableConnectedActions = document.getElementById("airtable-connected-actions");
 const airtableRefreshButton = document.getElementById("airtable-refresh-button");
@@ -496,12 +497,13 @@ async function handleConnectSubmit(event) {
 
   const token = airtableTokenInput.value.trim();
   const baseId = airtableBaseIdInput.value.trim();
-  if (!token || !baseId) {
-    showAirtableError("יש למלא גם Personal Access Token וגם Base ID");
+  const table = airtableTableInput.value.trim();
+  if (!token || !baseId || !table) {
+    showAirtableError("יש למלא Personal Access Token, Base ID ושם/מזהה טבלה");
     return;
   }
 
-  saveCredentials(token, baseId);
+  saveCredentials(token, baseId, table);
   await loadLeadsFromAirtable();
 }
 
@@ -512,6 +514,7 @@ function handleDisconnect() {
   clearAirtableError();
   airtableTokenInput.value = "";
   airtableBaseIdInput.value = "";
+  airtableTableInput.value = AIRTABLE_DEFAULT_TABLE_NAME;
 }
 
 function initAirtableConnection() {

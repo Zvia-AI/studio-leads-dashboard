@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      <form id="airtable-connect-form" class="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 sm:items-end">
+      <form id="airtable-connect-form" class="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 sm:items-end">
         <div>
           <label for="airtable-token" class="block text-sm text-taupe mb-1">Personal Access Token</label>
           <input type="password" id="airtable-token" autocomplete="off"
@@ -71,6 +71,12 @@
           <input type="text" id="airtable-base-id" autocomplete="off"
             class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
             placeholder="app...">
+        </div>
+        <div>
+          <label for="airtable-table" class="block text-sm text-taupe mb-1">Table (שם או מזהה)</label>
+          <input type="text" id="airtable-table" autocomplete="off" value="Leads"
+            class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
+            placeholder="Leads">
         </div>
         <button type="submit" id="airtable-connect-button"
           class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:brightness-95 transition whitespace-nowrap">
