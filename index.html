@@ -36,19 +36,56 @@
 
   <header class="bg-sand border-b border-stone-300 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
     <h1 class="text-xl sm:text-2xl font-semibold text-wood">סטודיו שקד - דאשבורד לידים</h1>
-    <div class="flex items-center gap-3">
-      <button type="button" id="reset-demo-button"
-        class="text-xs text-taupe underline hover:text-wood whitespace-nowrap">
-        איפוס נתוני הדגמה
-      </button>
-      <button type="button" id="add-lead-button"
-        class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:brightness-95 transition">
-        הוספת ליד
-      </button>
-    </div>
   </header>
 
   <main class="px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- חיבור ל-Airtable -->
+    <section id="airtable-panel" class="bg-white border border-sand rounded-xl p-4 shadow-sm">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-wood">חיבור ל-Airtable</h2>
+          <p id="airtable-status-text" class="text-sm text-taupe mt-1">לא מחובר</p>
+        </div>
+        <div id="airtable-connected-actions" class="hidden flex items-center gap-3">
+          <button type="button" id="airtable-refresh-button"
+            class="border border-sage text-sage px-4 py-2 rounded-lg hover:bg-sage/10 transition">
+            רענון
+          </button>
+          <button type="button" id="airtable-disconnect-button"
+            class="text-xs text-red-700 underline hover:no-underline">
+            התנתקות
+          </button>
+        </div>
+      </div>
+
+      <form id="airtable-connect-form" class="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 sm:items-end">
+        <div>
+          <label for="airtable-token" class="block text-sm text-taupe mb-1">Personal Access Token</label>
+          <input type="password" id="airtable-token" autocomplete="off"
+            class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
+            placeholder="pat...">
+        </div>
+        <div>
+          <label for="airtable-base-id" class="block text-sm text-taupe mb-1">Base ID</label>
+          <input type="text" id="airtable-base-id" autocomplete="off"
+            class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe focus:outline-none focus:ring-2 focus:ring-sage"
+            placeholder="app...">
+        </div>
+        <button type="submit" id="airtable-connect-button"
+          class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:brightness-95 transition whitespace-nowrap">
+          התחברות
+        </button>
+      </form>
+      <p id="airtable-error" class="text-sm text-red-700 mt-3 hidden"></p>
+    </section>
+
+    <!-- מצב ריק - אין חיבור -->
+    <section id="empty-state" class="bg-white border border-sand rounded-xl p-10 text-center text-taupe">
+      <p class="text-base">כדי להציג לידים, יש להתחבר ל-Airtable בחלונית שלמעלה</p>
+    </section>
+
+    <div id="dashboard-content" class="hidden space-y-6">
 
     <!-- כרטיסי מדדים -->
     <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -89,7 +126,13 @@
 
     <!-- טבלת לידים -->
     <section class="bg-white border border-sand rounded-xl p-4 shadow-sm">
-      <h2 class="text-lg font-semibold text-wood mb-3">טבלת לידים</h2>
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h2 class="text-lg font-semibold text-wood">טבלת לידים</h2>
+        <button type="button" id="add-lead-button"
+          class="bg-sage text-cream font-medium px-4 py-2 rounded-lg hover:brightness-95 transition whitespace-nowrap">
+          הוספת ליד
+        </button>
+      </div>
 
       <div class="flex flex-col sm:flex-row gap-3 mb-4">
         <div class="flex-1">
@@ -161,6 +204,8 @@
       <p id="table-count" class="text-xs text-taupe mt-3"></p>
     </section>
 
+    </div>
+
   </main>
 
   <!-- חלונית הוספת ליד -->
@@ -225,6 +270,8 @@
             <label for="lead-stage" class="block text-sm text-taupe mb-1">שלב</label>
             <select id="lead-stage" class="w-full border border-sand rounded-lg px-3 py-2 text-sm text-taupe"></select>
           </div>
+
+          <p id="lead-form-general-error" class="text-sm text-red-700 hidden"></p>
         </div>
 
         <div class="flex gap-3 mt-6">
@@ -241,7 +288,7 @@
     </div>
   </div>
 
-  <script src="data.js"></script>
+  <script src="airtable.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

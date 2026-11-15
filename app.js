@@ -1,3 +1,5 @@
+let LEADS = [];
+
 function computeKpis(leads) {
   const activeLeads = leads.filter(
     (lead) => lead.stage !== "נסגר בהצלחה" && lead.stage !== "לא רלוונטי"
@@ -227,6 +229,7 @@ const tableState = {
 };
 
 function formatDateDMY(isoDate) {
+  if (!isoDate) return "-";
   const [year, month, day] = isoDate.split("-");
   return `${day}/${month}/${year}`;
 }
@@ -278,10 +281,6 @@ function createCell(text) {
 function createActionsCell(lead) {
   const td = document.createElement("td");
   td.className = "py-2 px-3 border-b border-sand/60";
-
-  if (!addedLeadIds.has(lead.id)) {
-    return td;
-  }
 
   const wrapper = document.createElement("div");
   wrapper.className = "flex items-center justify-end gap-3";
@@ -375,7 +374,8 @@ function renderTable() {
     const td = document.createElement("td");
     td.colSpan = 9;
     td.className = "py-6 text-center text-taupe";
-    td.textContent = "לא נמצאו לידים מתאימים לחיפוש או לסינון";
+    td.textContent =
+      LEADS.length === 0 ? "אין עדיין לידים ב-Airtable - ניתן להוסיף ליד חדש" : "לא נמצאו לידים מתאימים לחיפוש או לסינון";
     tr.appendChild(td);
     tableBody.appendChild(tr);
   } else {
@@ -427,74 +427,109 @@ function initTableControls() {
   });
 }
 
-// ----- הוספה, עריכה, מחיקה ושמירת נתונים -----
+// ----- חיבור ל-Airtable -----
 
-const STORAGE_KEY = "studio-leads-dashboard:added-leads";
-let addedLeadCounter = 0;
-const addedLeadIds = new Set();
+const airtableConnectForm = document.getElementById("airtable-connect-form");
+const airtableTokenInput = document.getElementById("airtable-token");
+const airtableBaseIdInput = document.getElementById("airtable-base-id");
+const airtableConnectButton = document.getElementById("airtable-connect-button");
+const airtableConnectedActions = document.getElementById("airtable-connected-actions");
+const airtableRefreshButton = document.getElementById("airtable-refresh-button");
+const airtableDisconnectButton = document.getElementById("airtable-disconnect-button");
+const airtableStatusText = document.getElementById("airtable-status-text");
+const airtableErrorEl = document.getElementById("airtable-error");
+const dashboardContent = document.getElementById("dashboard-content");
+const emptyState = document.getElementById("empty-state");
 
-function readStoredAddedLeadsRaw() {
+function showAirtableError(message) {
+  airtableErrorEl.textContent = message;
+  airtableErrorEl.classList.remove("hidden");
+}
+
+function clearAirtableError() {
+  airtableErrorEl.textContent = "";
+  airtableErrorEl.classList.add("hidden");
+}
+
+function setConnectedUi(connected) {
+  dashboardContent.classList.toggle("hidden", !connected);
+  emptyState.classList.toggle("hidden", connected);
+  airtableConnectForm.classList.toggle("hidden", connected);
+  airtableConnectedActions.classList.toggle("hidden", !connected);
+  airtableStatusText.textContent = connected ? "מחובר ל-Airtable" : "לא מחובר";
+}
+
+function setAirtableBusy(isBusy, busyText) {
+  airtableConnectButton.disabled = isBusy;
+  airtableRefreshButton.disabled = isBusy;
+  airtableDisconnectButton.disabled = isBusy;
+  if (isBusy) {
+    airtableStatusText.textContent = busyText;
+  }
+}
+
+async function loadLeadsFromAirtable() {
+  clearAirtableError();
+  setAirtableBusy(true, "טוען לידים...");
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    LEADS = await fetchLeadsFromAirtable();
+    setConnectedUi(true);
+    renderKpis();
+    renderCharts();
+    renderTable();
   } catch (error) {
-    return [];
+    clearCredentials();
+    LEADS = [];
+    setConnectedUi(false);
+    showAirtableError(error.message);
+  } finally {
+    setAirtableBusy(false, "");
+    if (dashboardContent.classList.contains("hidden") === false) {
+      airtableStatusText.textContent = "מחובר ל-Airtable";
+    }
   }
 }
 
-function writeStoredAddedLeads(leads) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-  } catch (error) {
-    // אין גישה לאחסון - הדף ממשיך לעבוד בלי שמירה
+async function handleConnectSubmit(event) {
+  event.preventDefault();
+  clearAirtableError();
+
+  const token = airtableTokenInput.value.trim();
+  const baseId = airtableBaseIdInput.value.trim();
+  if (!token || !baseId) {
+    showAirtableError("יש למלא גם Personal Access Token וגם Base ID");
+    return;
+  }
+
+  saveCredentials(token, baseId);
+  await loadLeadsFromAirtable();
+}
+
+function handleDisconnect() {
+  clearCredentials();
+  LEADS = [];
+  setConnectedUi(false);
+  clearAirtableError();
+  airtableTokenInput.value = "";
+  airtableBaseIdInput.value = "";
+}
+
+function initAirtableConnection() {
+  airtableConnectForm.addEventListener("submit", handleConnectSubmit);
+  airtableRefreshButton.addEventListener("click", () => loadLeadsFromAirtable());
+  airtableDisconnectButton.addEventListener("click", handleDisconnect);
+
+  if (getStoredCredentials()) {
+    loadLeadsFromAirtable();
+  } else {
+    setConnectedUi(false);
   }
 }
 
-function clearStoredAddedLeads() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    // אין גישה לאחסון - אין מה לנקות
-  }
-}
+// ----- הוספה, עריכה ומחיקה של ליד -----
 
-function isValidStoredLead(item) {
-  if (!item || typeof item !== "object") return false;
-  if (typeof item.id !== "string" || item.id.length === 0 || item.id.length > 120) return false;
-  if (typeof item.clientName !== "string" || item.clientName.length === 0 || item.clientName.length > 60) {
-    return false;
-  }
-  if (typeof item.phone !== "string" || item.phone.length === 0 || item.phone.length > 80) return false;
-  if (typeof item.email !== "string" || item.email.length > 80) return false;
-  if (!Object.prototype.hasOwnProperty.call(SERVICE_COLORS, item.serviceType)) return false;
-  if (!PROPERTY_TYPES.includes(item.propertyType)) return false;
-  if (item.source !== "" && !SOURCES.includes(item.source)) return false;
-  if (!STAGE_ORDER.includes(item.stage)) return false;
-  if (
-    item.estimatedValue !== null &&
-    (typeof item.estimatedValue !== "number" || Number.isNaN(item.estimatedValue) || item.estimatedValue < 0)
-  ) {
-    return false;
-  }
-  if (typeof item.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.createdAt)) return false;
-  if (
-    item.consultationDate !== null &&
-    (typeof item.consultationDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.consultationDate))
-  ) {
-    return false;
-  }
-  return true;
-}
-
-function loadValidAddedLeads() {
-  return readStoredAddedLeadsRaw().filter(isValidStoredLead);
-}
-
-function persistAddedLeads() {
-  const addedLeads = LEADS.filter((lead) => addedLeadIds.has(lead.id));
-  writeStoredAddedLeads(addedLeads);
+function findLeadById(id) {
+  return LEADS.find((lead) => lead.id === id);
 }
 
 function buildLocalDateString() {
@@ -505,33 +540,13 @@ function buildLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
-function buildNewLead(values) {
-  const id = `lead-u-${Date.now()}-${addedLeadCounter++}`;
-  return {
-    id,
-    clientName: values.name,
-    phone: values.phone,
-    email: values.email,
-    serviceType: values.serviceType,
-    propertyType: values.propertyType,
-    source: values.source,
-    stage: "פנייה חדשה",
-    estimatedValue: values.estimatedValue,
-    createdAt: buildLocalDateString(),
-    consultationDate: null,
-  };
-}
-
-function findLeadById(id) {
-  return LEADS.find((lead) => lead.id === id);
-}
-
 const FIELD_ERROR_IDS = {
   name: "lead-name-error",
   phone: "lead-phone-error",
   serviceType: "lead-service-error",
   propertyType: "lead-property-error",
   estimatedValue: "lead-value-error",
+  general: "lead-form-general-error",
 };
 
 function clearFormErrors() {
@@ -572,7 +587,6 @@ const addLeadModal = document.getElementById("add-lead-modal");
 const addLeadButton = document.getElementById("add-lead-button");
 const addLeadForm = document.getElementById("add-lead-form");
 const addLeadCancelButton = document.getElementById("add-lead-cancel");
-const resetDemoButton = document.getElementById("reset-demo-button");
 const leadFormTitle = document.getElementById("add-lead-title");
 const leadFormSubmitButton = document.getElementById("lead-form-submit-button");
 const leadStageField = document.getElementById("lead-stage-field");
@@ -637,15 +651,26 @@ function openEditLeadModal(leadId) {
   openAddLeadModal();
 }
 
-function applyConsultationDateRule(lead, newStage) {
-  if (newStage === "פגישת ייעוץ בשטח (בתשלום)" && lead.consultationDate === null) {
-    lead.consultationDate = buildLocalDateString();
-  } else if (newStage === "פנייה חדשה" || newStage === "שיחת היכרות טלפונית") {
-    lead.consultationDate = null;
+function computeConsultationDateForStage(lead, newStage) {
+  if (newStage === "פגישת ייעוץ בשטח (בתשלום)" && !lead.consultationDate) {
+    return buildLocalDateString();
   }
+  if (newStage === "פנייה חדשה" || newStage === "שיחת היכרות טלפונית") {
+    return null;
+  }
+  return lead.consultationDate;
 }
 
-function handleLeadFormSubmit(event) {
+function setFormSubmitting(isSubmitting) {
+  leadFormSubmitButton.disabled = isSubmitting;
+  leadFormSubmitButton.textContent = isSubmitting
+    ? "שומר..."
+    : editingLeadId
+    ? "שמירת שינויים"
+    : "שמירת ליד";
+}
+
+async function handleLeadFormSubmit(event) {
   event.preventDefault();
   clearFormErrors();
 
@@ -668,74 +693,74 @@ function handleLeadFormSubmit(event) {
   const normalizedPhone = normalizePhone(values.phone);
   const estimatedValue = values.estimatedValueRaw === "" ? null : Number(values.estimatedValueRaw);
 
-  if (editingLeadId) {
-    const lead = findLeadById(editingLeadId);
-    if (lead) {
-      const newStage = leadStageSelect.value;
-      lead.clientName = values.name;
-      lead.phone = normalizedPhone;
-      lead.serviceType = values.serviceType;
-      lead.propertyType = values.propertyType;
-      lead.email = values.email;
-      lead.source = values.source;
-      lead.estimatedValue = estimatedValue;
-      applyConsultationDateRule(lead, newStage);
-      lead.stage = newStage;
-      persistAddedLeads();
+  setFormSubmitting(true);
+  try {
+    if (editingLeadId) {
+      const lead = findLeadById(editingLeadId);
+      if (lead) {
+        const newStage = leadStageSelect.value;
+        const newConsultationDate = computeConsultationDateForStage(lead, newStage);
+        const fields = {
+          clientName: values.name,
+          phone: normalizedPhone,
+          serviceType: values.serviceType,
+          propertyType: values.propertyType,
+          email: values.email,
+          source: values.source,
+          estimatedValue,
+          stage: newStage,
+        };
+        if (newConsultationDate !== lead.consultationDate) {
+          fields.consultationDate = newConsultationDate;
+        }
+        const updated = await updateLeadInAirtable(lead.id, fields);
+        Object.assign(lead, updated);
+      }
+    } else {
+      const fields = {
+        clientName: values.name,
+        phone: normalizedPhone,
+        serviceType: values.serviceType,
+        propertyType: values.propertyType,
+        email: values.email,
+        source: values.source,
+        estimatedValue,
+        stage: "פנייה חדשה",
+        createdAt: buildLocalDateString(),
+        consultationDate: null,
+      };
+      const created = await createLeadInAirtable(fields);
+      LEADS.push(created);
     }
-  } else {
-    const newLead = buildNewLead({
-      name: values.name,
-      phone: normalizedPhone,
-      serviceType: values.serviceType,
-      propertyType: values.propertyType,
-      email: values.email,
-      source: values.source,
-      estimatedValue,
-    });
-    LEADS.push(newLead);
-    addedLeadIds.add(newLead.id);
-    persistAddedLeads();
-  }
 
-  closeAddLeadModal();
-  renderKpis();
-  renderCharts();
-  renderTable();
+    closeAddLeadModal();
+    renderKpis();
+    renderCharts();
+    renderTable();
+  } catch (error) {
+    showFormErrors({ general: error.message });
+  } finally {
+    setFormSubmitting(false);
+  }
 }
 
-function handleDeleteLead(leadId) {
+async function handleDeleteLead(leadId) {
   const lead = findLeadById(leadId);
   if (!lead) return;
 
   const confirmed = confirm(`למחוק את הליד של ${lead.clientName}? הפעולה אינה הפיכה.`);
   if (!confirmed) return;
 
-  const index = LEADS.findIndex((item) => item.id === leadId);
-  if (index !== -1) LEADS.splice(index, 1);
-  addedLeadIds.delete(leadId);
-  persistAddedLeads();
-
-  renderKpis();
-  renderCharts();
-  renderTable();
-}
-
-function handleResetDemo() {
-  const confirmed = confirm("לאפס את נתוני הדמה? הפעולה תמחק את כל הלידים שנוספו ואינה הפיכה.");
-  if (!confirmed) return;
-
-  clearStoredAddedLeads();
-  for (let i = LEADS.length - 1; i >= 0; i -= 1) {
-    if (addedLeadIds.has(LEADS[i].id)) {
-      LEADS.splice(i, 1);
-    }
+  try {
+    await deleteLeadInAirtable(leadId);
+    const index = LEADS.findIndex((item) => item.id === leadId);
+    if (index !== -1) LEADS.splice(index, 1);
+    renderKpis();
+    renderCharts();
+    renderTable();
+  } catch (error) {
+    alert(`מחיקת הליד נכשלה: ${error.message}`);
   }
-  addedLeadIds.clear();
-
-  renderKpis();
-  renderCharts();
-  renderTable();
 }
 
 function initAddLeadModal() {
@@ -750,13 +775,7 @@ function initAddLeadModal() {
     if (event.target === addLeadModal) closeAddLeadModal();
   });
   addLeadForm.addEventListener("submit", handleLeadFormSubmit);
-  resetDemoButton.addEventListener("click", handleResetDemo);
 }
-
-loadValidAddedLeads().forEach((lead) => {
-  LEADS.push(lead);
-  addedLeadIds.add(lead.id);
-});
 
 renderKpis();
 renderCharts();
@@ -770,4 +789,5 @@ if (document.fonts && document.fonts.ready) {
 
 initTableControls();
 initAddLeadModal();
+initAirtableConnection();
 renderTable();
